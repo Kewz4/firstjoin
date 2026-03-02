@@ -14,6 +14,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -93,9 +95,7 @@ public class ExampleMod implements ModInitializer {
 				if (hudTimers.containsKey(uuid)) {
 					int ticksLeft = hudTimers.get(uuid);
 					if (ticksLeft > 0) {
-						MutableComponent message = Component.literal("Right-Click once ").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
-							.append(Component.literal("and ").withStyle(ChatFormatting.WHITE))
-							.append(Component.literal("soar").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD))
+						MutableComponent message = Component.literal("Soar").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD)
 							.append(Component.literal(" to your perfect landing spot. ").withStyle(ChatFormatting.WHITE))
 							.append(Component.literal("Welcome to Kewz's Cobbleverse!").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
 
@@ -124,9 +124,27 @@ public class ExampleMod implements ModInitializer {
 		Optional<Item> itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse("hangglider:reinforced_hang_glider"));
 		if (itemOpt.isPresent()) {
 			ItemStack gliderStack = new ItemStack(itemOpt.get());
-			if (!player.getInventory().add(gliderStack)) {
-				player.drop(gliderStack, false);
+
+			// Try to set it in main hand and simulate use
+			ItemStack oldMainHand = player.getItemInHand(InteractionHand.MAIN_HAND);
+			if (!oldMainHand.isEmpty()) {
+				// Move existing item out of the way
+				if (!player.getInventory().add(oldMainHand)) {
+					player.drop(oldMainHand, false);
+				}
 			}
+
+			// Equip hang glider
+			player.setItemInHand(InteractionHand.MAIN_HAND, gliderStack);
+
+			// Simulate "right click" use
+			InteractionResultHolder<ItemStack> result = gliderStack.use(level, player, InteractionHand.MAIN_HAND);
+
+			// If use returned a modified stack or whatever, we make sure it's updated in hand
+			if (result != null && result.getObject() != null) {
+				player.setItemInHand(InteractionHand.MAIN_HAND, result.getObject());
+			}
+
 		} else {
 			LOGGER.warn("Item hangglider:reinforced_hang_glider not found in registry.");
 		}
