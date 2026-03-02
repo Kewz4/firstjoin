@@ -3,11 +3,15 @@ package com.example;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
@@ -18,8 +22,11 @@ import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 public class ExampleMod implements ModInitializer {
 	public static final String MOD_ID = "modid";
@@ -31,7 +38,15 @@ public class ExampleMod implements ModInitializer {
 	private static final int SPAWN_Z = -169;
 	private static final int MAX_RADIUS_CHUNKS = 500;
 	private static final int MAX_RADIUS_BLOCKS = MAX_RADIUS_CHUNKS * 16;
-	private static final int TELEPORT_Y = 300;
+	private static final int TELEPORT_Y = 500;
+
+	// 20 ticks per second
+	private static final int HUD_DURATION_TICKS = 25 * 20;
+	private static final int FALL_IMMUNITY_DURATION_TICKS = 30 * 20;
+
+	// Maps to store remaining ticks for players
+	private static final Map<UUID, Integer> hudTimers = new HashMap<>();
+	private static final Map<UUID, Integer> fallImmunityTimers = new HashMap<>();
 
 	@Override
 	public void onInitialize() {
@@ -57,6 +72,41 @@ public class ExampleMod implements ModInitializer {
 				)
 			);
 		});
+
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+				UUID uuid = player.getUUID();
+
+				// Handle Fall Immunity
+				if (fallImmunityTimers.containsKey(uuid)) {
+					int ticksLeft = fallImmunityTimers.get(uuid);
+					if (ticksLeft > 0) {
+						// Reset fall distance constantly so they don't take damage when landing
+						player.resetFallDistance();
+						fallImmunityTimers.put(uuid, ticksLeft - 1);
+					} else {
+						fallImmunityTimers.remove(uuid);
+					}
+				}
+
+				// Handle HUD message
+				if (hudTimers.containsKey(uuid)) {
+					int ticksLeft = hudTimers.get(uuid);
+					if (ticksLeft > 0) {
+						MutableComponent message = Component.literal("Right-Click once ").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
+							.append(Component.literal("and ").withStyle(ChatFormatting.WHITE))
+							.append(Component.literal("soar").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD))
+							.append(Component.literal(" to your perfect landing spot. ").withStyle(ChatFormatting.WHITE))
+							.append(Component.literal("Welcome to Kewz's Cobbleverse!").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+
+						player.displayClientMessage(message, true); // true = action bar
+						hudTimers.put(uuid, ticksLeft - 1);
+					} else {
+						hudTimers.remove(uuid);
+					}
+				}
+			}
+		});
 	}
 
 	private void doFirstJoinSequence(ServerPlayer player) {
@@ -71,14 +121,19 @@ public class ExampleMod implements ModInitializer {
 
 		player.teleportTo(level, targetX + 0.5, TELEPORT_Y, targetZ + 0.5, java.util.Collections.emptySet(), player.getYRot(), player.getXRot());
 
-		Optional<Item> itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse("gliding:wooden_glider"));
+		Optional<Item> itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse("hangglider:reinforced_hang_glider"));
 		if (itemOpt.isPresent()) {
 			ItemStack gliderStack = new ItemStack(itemOpt.get());
 			if (!player.getInventory().add(gliderStack)) {
 				player.drop(gliderStack, false);
 			}
 		} else {
-			LOGGER.warn("Item gliding:wooden_glider not found in registry.");
+			LOGGER.warn("Item hangglider:reinforced_hang_glider not found in registry.");
 		}
+
+		// Start timers for this player
+		UUID uuid = player.getUUID();
+		hudTimers.put(uuid, HUD_DURATION_TICKS);
+		fallImmunityTimers.put(uuid, FALL_IMMUNITY_DURATION_TICKS);
 	}
 }
