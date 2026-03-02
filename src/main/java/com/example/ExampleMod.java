@@ -47,8 +47,8 @@ public class ExampleMod implements ModInitializer {
 	private static final int FALL_IMMUNITY_DURATION_TICKS = 30 * 20;
 
 	// Maps to store remaining ticks for players
-	private static final Map<UUID, Integer> hudTimers = new HashMap<>();
-	private static final Map<UUID, Integer> fallImmunityTimers = new HashMap<>();
+	public static final Map<UUID, Integer> hudTimers = new HashMap<>();
+	public static final Map<UUID, Integer> fallImmunityTimers = new HashMap<>();
 
 	@Override
 	public void onInitialize() {
@@ -125,10 +125,8 @@ public class ExampleMod implements ModInitializer {
 		if (itemOpt.isPresent()) {
 			ItemStack gliderStack = new ItemStack(itemOpt.get());
 
-			// Try to set it in main hand and simulate use
 			ItemStack oldMainHand = player.getItemInHand(InteractionHand.MAIN_HAND);
 			if (!oldMainHand.isEmpty()) {
-				// Move existing item out of the way
 				if (!player.getInventory().add(oldMainHand)) {
 					player.drop(oldMainHand, false);
 				}
@@ -137,13 +135,8 @@ public class ExampleMod implements ModInitializer {
 			// Equip hang glider
 			player.setItemInHand(InteractionHand.MAIN_HAND, gliderStack);
 
-			// Simulate "right click" use
-			InteractionResultHolder<ItemStack> result = gliderStack.use(level, player, InteractionHand.MAIN_HAND);
-
-			// If use returned a modified stack or whatever, we make sure it's updated in hand
-			if (result != null && result.getObject() != null) {
-				player.setItemInHand(InteractionHand.MAIN_HAND, result.getObject());
-			}
+			// Simulate "right click" use on the server by going through the gameMode handler
+			player.gameMode.useItem(player, level, gliderStack, InteractionHand.MAIN_HAND);
 
 		} else {
 			LOGGER.warn("Item hangglider:reinforced_hang_glider not found in registry.");
