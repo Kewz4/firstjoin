@@ -1,4 +1,4 @@
-package com.example;
+package com.kewz.cobbleverse;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -30,8 +30,8 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
-public class ExampleMod implements ModInitializer {
-	public static final String MOD_ID = "modid";
+public class CobbleverseGliderMod implements ModInitializer {
+	public static final String MOD_ID = "kewzcobbleverse";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	private static final String FIRST_JOIN_TAG = "gliding_first_join";
@@ -44,7 +44,7 @@ public class ExampleMod implements ModInitializer {
 
 	// 20 ticks per second
 	private static final int HUD_DURATION_TICKS = 25 * 20;
-	private static final int FALL_IMMUNITY_DURATION_TICKS = 30 * 20;
+	private static final int FALL_IMMUNITY_DURATION_TICKS = 3 * 60 * 20; // 3 minutes
 
 	// Maps to store remaining ticks for players
 	public static final Map<UUID, Integer> hudTimers = new HashMap<>();
@@ -52,7 +52,7 @@ public class ExampleMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		LOGGER.info("Initializing ExampleMod for Glider Teleport");
+		LOGGER.info("Initializing Cobbleverse Glider Mod for Glider Teleport");
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayer player = handler.getPlayer();
@@ -97,7 +97,8 @@ public class ExampleMod implements ModInitializer {
 					if (ticksLeft > 0) {
 						MutableComponent message = Component.literal("Soar").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD)
 							.append(Component.literal(" to your perfect landing spot. ").withStyle(ChatFormatting.WHITE))
-							.append(Component.literal("Welcome to Kewz's Cobbleverse!").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+							.append(Component.literal("Welcome to Kewz's Cobbleverse! ").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+							.append(Component.literal("Don't worry, you have no fall damage!").withStyle(ChatFormatting.YELLOW, ChatFormatting.ITALIC));
 
 						player.displayClientMessage(message, true); // true = action bar
 						hudTimers.put(uuid, ticksLeft - 1);

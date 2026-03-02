@@ -1,4 +1,4 @@
-package com.example.mixin;
+package com.kewz.cobbleverse.mixin;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -15,7 +15,7 @@ public class ServerPlayerMixin {
             String text = message.getString().toLowerCase();
             if (text.contains("space")) {
                 ServerPlayer player = (ServerPlayer) (Object) this;
-                if (com.example.ExampleMod.hudTimers.containsKey(player.getUUID())) {
+                if (com.kewz.cobbleverse.CobbleverseGliderMod.hudTimers.containsKey(player.getUUID())) {
                     ci.cancel();
                 }
             }
